@@ -51,7 +51,7 @@ ALTER TABLE ONLY public.users
 
 INSERT INTO "public"."users"("email","first_name","last_name","password","user_active","created_at","updated_at")
 VALUES
-(E'admin@example.com',E'Admin',E'User',E'$2a$12$1zGLuYDDNvATh4RA4avbKuheAMpb1svexSzrQm7up.bnpwQHs0jNe',1,E'2022-03-14 00:00:00',E'2022-03-14 00:00:00');
+(E'joe2@test.com',E'Joe',E'Toni',E'$2a$12$bkiLOQG53J1gPWi20Z/VeOWPenslqRAKgi6AsNfr/Pe7MbW.BwdwK',1,E'2022-03-14 00:00:00',E'2022-03-14 00:00:00');
 
 
 
