@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"html/template"
-	textTemplate "text/template"
+	"log"
 	"time"
 
 	"github.com/vanng822/go-premailer/premailer"
@@ -40,28 +40,26 @@ func (m *Mail) SendSMTPMessage(msg Message) error {
 		msg.FromName = m.FromName
 	}
 
-	data := map[string]any{
+	data := map[string]any {
 		"message": msg.Data,
 	}
 
 	msg.DataMap = data
 
 	formattedMessage, err := m.buildHTMLMessage(msg)
-
 	if err != nil {
 		return err
 	}
 
 	plainMessage, err := m.buildPlainTextMessage(msg)
-
 	if err != nil {
 		return err
 	}
 
 	server := mail.NewSMTPClient()
-
 	server.Host = m.Host
 	server.Port = m.Port
+	server.Username = m.Username
 	server.Password = m.Password
 	server.Encryption = m.getEncryption(m.Encryption)
 	server.KeepAlive = false
@@ -69,19 +67,17 @@ func (m *Mail) SendSMTPMessage(msg Message) error {
 	server.SendTimeout = 10 * time.Second
 
 	smtpClient, err := server.Connect()
-
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	email := mail.NewMSG()
-
 	email.SetFrom(msg.From).
 		AddTo(msg.To).
 		SetSubject(msg.Subject)
 
 	email.SetBody(mail.TextPlain, plainMessage)
-
 	email.AddAlternative(mail.TextHTML, formattedMessage)
 
 	if len(msg.Attachments) > 0 {
@@ -91,11 +87,11 @@ func (m *Mail) SendSMTPMessage(msg Message) error {
 	}
 
 	err = email.Send(smtpClient)
-
 	if err != nil {
+		log.Println(err)
 		return err
 	}
-
+	
 	return nil
 }
 
@@ -103,21 +99,17 @@ func (m *Mail) buildHTMLMessage(msg Message) (string, error) {
 	templateToRender := "./templates/mail.html.gohtml"
 
 	t, err := template.New("email-html").ParseFiles(templateToRender)
-
 	if err != nil {
 		return "", err
 	}
 
 	var tpl bytes.Buffer
-
 	if err = t.ExecuteTemplate(&tpl, "body", msg.DataMap); err != nil {
-		return "", nil
+		return "", err
 	}
 
 	formattedMessage := tpl.String()
-
 	formattedMessage, err = m.inlineCSS(formattedMessage)
-
 	if err != nil {
 		return "", err
 	}
@@ -125,46 +117,42 @@ func (m *Mail) buildHTMLMessage(msg Message) (string, error) {
 	return formattedMessage, nil
 }
 
-func (m *Mail) inlineCSS(s string) (string, error) {
-	options := premailer.Options{
-		RemoveClasses:     false,
-		CssToAttributes:   false,
-		KeepBangImportant: true,
-	}
-
-	prem, err := premailer.NewPremailerFromString(s, &options)
-
-	if err != nil {
-		return "", err
-	}
-
-	html, err := prem.Transform()
-
-	if err != nil {
-		return "", err
-	}
-
-	return html, nil
-}
-
 func (m *Mail) buildPlainTextMessage(msg Message) (string, error) {
 	templateToRender := "./templates/mail.plain.gohtml"
 
-	t, err := textTemplate.New("email-plain").ParseFiles(templateToRender)
-
+	t, err := template.New("email-plain").ParseFiles(templateToRender)
 	if err != nil {
 		return "", err
 	}
 
 	var tpl bytes.Buffer
-
 	if err = t.ExecuteTemplate(&tpl, "body", msg.DataMap); err != nil {
-		return "", nil
+		return "", err
 	}
 
 	plainMessage := tpl.String()
 
 	return plainMessage, nil
+}
+
+func (m *Mail) inlineCSS(s string) (string, error) {
+	options := premailer.Options{
+		RemoveClasses: false,
+		CssToAttributes: false,
+		KeepBangImportant: true,
+	}
+
+	prem, err := premailer.NewPremailerFromString(s, &options)
+	if err != nil {
+		return "", err
+	}
+
+	html, err := prem.Transform()
+	if err != nil {
+		return "", err
+	}
+
+	return html, nil
 }
 
 func (m *Mail) getEncryption(s string) mail.Encryption {

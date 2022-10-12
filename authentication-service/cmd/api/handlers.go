@@ -22,16 +22,21 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// validate the user against the database
 	user, err := app.Models.User.GetByEmail(requestPayload.Email)
-
 	if err != nil {
-		app.errorJSON(w, errors.New("invalid credentials"), http.StatusUnauthorized)
+		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
 		return
 	}
 
 	valid, err := user.PasswordMatches(requestPayload.Password)
-
 	if err != nil || !valid {
-		app.errorJSON(w, errors.New("invalid credentials"), http.StatusUnauthorized)
+		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
+		return
+	}
+
+	// log authentication
+	err = app.logRequest("authentication", fmt.Sprintf("%s logged in", user.Email))
+	if err != nil {
+		app.errorJSON(w, err)
 		return
 	}
 
@@ -40,8 +45,6 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 		Message: fmt.Sprintf("Logged in user %s", user.Email),
 		Data:    user,
 	}
-
-	app.logRequest("authentication", payload.Message)
 
 	app.writeJSON(w, http.StatusAccepted, payload)
 }
@@ -56,15 +59,15 @@ func (app *Config) logRequest(name, data string) error {
 	entry.Data = data
 
 	jsonData, _ := json.MarshalIndent(entry, "", "\t")
+	logServiceURL := "http://logger-service/log"
 
-	request, err := http.NewRequest("POST", "http://logger-service/log", bytes.NewBuffer(jsonData))
+	request, err := http.NewRequest("POST", logServiceURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
 
 	client := &http.Client{}
 	_, err = client.Do(request)
-
 	if err != nil {
 		return err
 	}

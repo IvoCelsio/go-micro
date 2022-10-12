@@ -25,3 +25,5 @@ authApp
 
 # Local db volume mapping
 db-data
+
+.DS_Store

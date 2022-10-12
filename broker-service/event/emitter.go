@@ -1,7 +1,6 @@
 package event
 
 import (
-	"context"
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -13,41 +12,33 @@ type Emitter struct {
 
 func (e *Emitter) setup() error {
 	channel, err := e.connection.Channel()
-
 	if err != nil {
 		return err
 	}
 
 	defer channel.Close()
-
 	return declareExchange(channel)
 }
 
 func (e *Emitter) Push(event string, severity string) error {
 	channel, err := e.connection.Channel()
-
 	if err != nil {
 		return err
 	}
-
 	defer channel.Close()
 
 	log.Println("Pushing to channel")
 
-	ctx := context.Background()
-
-	err = channel.PublishWithContext(
-		ctx,
+	err = channel.Publish(
 		"logs_topic",
 		severity,
 		false,
 		false,
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body:        []byte(event),
+			Body: []byte(event),
 		},
 	)
-
 	if err != nil {
 		return err
 	}
@@ -61,7 +52,6 @@ func NewEventEmitter(conn *amqp.Connection) (Emitter, error) {
 	}
 
 	err := emitter.setup()
-
 	if err != nil {
 		return Emitter{}, err
 	}
