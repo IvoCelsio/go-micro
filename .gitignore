@@ -13,6 +13,9 @@ frontApp
 brokerApp
 authApp
 loggerServiceApp
+listenerApp
+mailerApp
+authApp
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
